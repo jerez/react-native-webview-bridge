@@ -117,8 +117,13 @@ var WebViewBridge = React.createClass({
       domStorageEnabled = this.props.domStorageEnabledAndroid;
     }
 
-    let {source, ...props} = {...this.props};
-
+    // NOTE: IPSY-PLOOS WORKAROUND
+    // We are passing all our needed js in the native class since sometimes the
+    // injected js is executed before the injectedBridgeScript
+    // and it causes undefined errors that leads into flow issues
+    // so here we are forcing ther propety javascript enabled to true
+    // and the injectedJavascript to none.
+    let {source, ...props} = {...this.props, javaScriptEnabled:true, injectedJavaScript:""};
     var webView =
       <RCTWebViewBridge
         ref={RCT_WEBVIEWBRIDGE_REF}

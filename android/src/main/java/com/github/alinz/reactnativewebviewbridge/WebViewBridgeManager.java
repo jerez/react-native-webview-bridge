@@ -74,18 +74,43 @@ public class WebViewBridgeManager extends ReactWebViewManager {
     }
 
     // this code needs to be executed everytime a url changes.
-    WebViewBridgeManager.evaluateJavascript(root, ""
-            + "(function() {"
-            + "if (window.WebViewBridge) return;"
-            + "var customEvent = document.createEvent('Event');"
-            + "var WebViewBridge = {"
-              + "send: function(message) { WebViewBridgeAndroid.send(message); },"
-              + "onMessage: function() {}"
-            + "};"
-            + "window.WebViewBridge = WebViewBridge;"
-            + "customEvent.initEvent('WebViewBridge', true, true);"
-            + "document.dispatchEvent(customEvent);"
-            + "}());");
+    //
+    // NOTE: IPSY-PLOOS WORKAROUND
+    // We are passing all our needed js here since sometimes the
+    // injected js is executed before the injectedBridgeScript
+    // and it causes undefined errors that leads into flow issues
+    WebViewBridgeManager.evaluateJavascript(root, "" +
+            "(function() {" +
+            "  if (window.WebViewBridge) return;" +
+            "  function tryToChangeDisplay(selector, display) {" +
+            "    var objects = document.querySelectorAll(selector);" +
+            "    if (!objects) return false;" +
+            "    for (var i = 0; i < objects.length; i++) {" +
+            "      objects[i].style.display = display;" +
+            "    }" +
+            "    return true;" +
+            "  }" +
+            "  var WebViewBridge = {" +
+            "    send: function(message) { WebViewBridgeAndroid.send(message); }," +
+            "    onMessage: function (message) {" +
+            "      switch(message) {" +
+            "        case 'hide':" +
+            "          tryToChangeDisplay('input', 'none');" +
+            "          WebViewBridgeAndroid.send('DOM_HIDE_SUCCESS');" +
+            "          break;" +
+            "        case 'show':" +
+            "          tryToChangeDisplay('input', 'block');" +
+            "          WebViewBridgeAndroid.send('DOM_SHOW_SUCCESS');" +
+            "          break;" +
+            "      }" +
+            "    }" +
+            "  };" +
+            "  var customEvent = document.createEvent('Event');" +
+            "  window.WebViewBridge = WebViewBridge;" +
+            "  customEvent.initEvent('WebViewBridge', true, true);" +
+            "  document.dispatchEvent(customEvent);" +
+            "}());"
+    );
   }
 
   static private void evaluateJavascript(WebView root, String javascript) {
